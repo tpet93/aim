@@ -17,6 +17,12 @@ from aim.storage.locking import RunLock
 from dateutil.relativedelta import relativedelta
 from filelock import SoftFileLock, Timeout, UnixFileLock
 
+from dataclasses import dataclass, field
+from dateutil.relativedelta import relativedelta
+from filelock import SoftFileLock, Timeout
+
+from aim.sdk.errors import RunLockingError
+from aim.storage.locking import RunLock, PlatformFileLock
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +34,7 @@ class LockingVersion(Enum):
 
 class LockType(Enum):
     SOFT_LOCK = 0
-    UNIX_LOCK = 1
+    PLATFORM_LOCK = 1
 
 
 @dataclass(frozen=True)
@@ -99,13 +105,13 @@ class LockManager(object):
                 soft_lock_path = lock_dir / self.softlock_fname(run_hash)
                 if lock_path.exists():
                     try:
-                        lock = UnixFileLock(lock_path, timeout=0)
+                        lock = PlatformFileLock(lock_path, timeout=0)
                         with lock.acquire():
                             pass
                     except Timeout:
                         locked = True
                         lock_version = LockingVersion.LEGACY
-                        lock_type = LockType.UNIX_LOCK
+                        lock_type = LockType.PLATFORM_LOCK
                 elif soft_lock_path.exists():
                     locked = True
                     created_at = datetime.datetime.fromtimestamp(soft_lock_path.stat().st_mtime)
@@ -128,7 +134,7 @@ class LockManager(object):
             )
             self.release_locks(run_hash, force=True)
         elif not self.release_locks(run_hash, force=False):
-            raise RunLockingError(
+            raise RunLockingError(s
                 f"Cannot acquire lock for Run '{run_hash}'. "
                 f"Make sure no process uses Run '{run_hash}' and close it via Aim CLI:\n"
                 f'`aim runs close --force {run_hash}`'
@@ -144,11 +150,9 @@ class LockManager(object):
             # Force-release container locks if any
             for container_dir in ('meta', 'seqs'):
                 soft_lock_path = self.repo_path / container_dir / 'locks' / self.softlock_fname(run_hash)
-                if soft_lock_path.exists():
-                    soft_lock_path.unlink()
-                unix_lock_path = self.repo_path / container_dir / 'locks' / run_hash
-                if unix_lock_path.exists():
-                    unix_lock_path.unlink()
+                soft_lock_path.unlink(missing_ok=True)
+                platform_lock_path = self.repo_path / container_dir / 'locks' / run_hash
+                platform_lock_path.unlink(missing_ok=True)
 
             # Force-release run lock
             if lock_path.exists():

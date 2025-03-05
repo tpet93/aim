@@ -6,7 +6,7 @@ from shutil import rmtree
 from aimrocks import lib_utils
 from Cython.Build import cythonize
 from setuptools import Command, Extension, find_packages, setup
-
+import platform
 
 # TODO This `setup.py` assumes that `Cython` and `aimrocks` are installed.
 # This is okay for now as users are expected to install `aim` from wheels.
@@ -127,7 +127,30 @@ class UploadCommand(Command):
 INCLUDE_DIRS = [lib_utils.get_include_dir()]
 LIB_DIRS = [lib_utils.get_lib_dir()]
 LIBS = lib_utils.get_libs()
-COMPILE_ARGS = ['-std=c++11', '-O3', '-Wall', '-Wextra', '-Wconversion', '-fno-strict-aliasing', '-fno-rtti', '-fPIC']
+if platform.system() == 'Windows':
+    COMPILE_ARGS = [
+        '/std:c++latest',
+        '/permissive-',
+        '/W3',
+        '/O2',
+        '/EHsc',
+        '/GL'
+    ]
+    LINK_ARGS = [
+        '/LTCG'
+    ]
+else:
+    COMPILE_ARGS = [
+        '-std=c++11',
+        '-O3',
+        '-Wall',
+        '-Wextra',
+        '-Wconversion',
+        '-fno-strict-aliasing',
+        '-fno-rtti',
+        '-fPIC'
+    ]
+    LINK_ARGS = []
 CYTHON_SCRITPS = [
     ('aim.storage.hashing.c_hash', 'aim/storage/hashing/c_hash.pyx'),
     ('aim.storage.hashing.hashing', 'aim/storage/hashing/hashing.py'),
@@ -161,6 +184,7 @@ def configure_extension(name: str, path: str):
         libraries=LIBS,
         library_dirs=LIB_DIRS,
         extra_compile_args=COMPILE_ARGS,
+        extra_link_args=LINK_ARGS,
     )
 
 
