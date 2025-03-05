@@ -8,7 +8,7 @@ from typing import Iterator, Optional, Tuple
 
 from aim.ext.cleanup import AutoClean
 from aim.ext.exception_resistant import exception_resistant
-from aim.storage.locking import SoftFileLock, NoopLock, DualLock
+from aim.storage.locking import SoftFileLock, NoopLock, RefreshLock
 from aim.storage.types import BLOB
 from aim.storage.container import Container, ContainerKey, ContainerValue, ContainerItemsIterator
 from aim.storage.prefixview import PrefixView
