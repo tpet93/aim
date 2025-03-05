@@ -134,7 +134,7 @@ class LockManager(object):
             )
             self.release_locks(run_hash, force=True)
         elif not self.release_locks(run_hash, force=False):
-            raise RunLockingError(s
+            raise RunLockingError(
                 f"Cannot acquire lock for Run '{run_hash}'. "
                 f"Make sure no process uses Run '{run_hash}' and close it via Aim CLI:\n"
                 f'`aim runs close --force {run_hash}`'
